@@ -37,7 +37,7 @@ class User(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(80))
     email: Mapped[str] = mapped_column(String(255, collation='NOCASE'))
-    password_cash: Mapped[str] = mapped_column(String(255))
+    password_hash: Mapped[str] = mapped_column(String(255))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now())
 
     chats: Mapped[list['Chat']] = relationship(back_populates='user', cascade='all, delete-orphan')
@@ -94,7 +94,7 @@ def enable_sqlite_foreign_keys(connection, _):
         cursor.close()
 
 
-SessionLocal = sessionmaker(bing=engine, autoflush=False)
+SessionLocal = sessionmaker(bind=engine, autoflush=False)
 
 def get_db():
     with SessionLocal() as session:
