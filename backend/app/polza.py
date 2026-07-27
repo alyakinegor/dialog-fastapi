@@ -32,3 +32,4 @@ class PolzaClient:
         except (AttributeError, ValueError):
             message = None
             raise PolzaError(message or 'Polza.ai вернул ошибку')
+        
