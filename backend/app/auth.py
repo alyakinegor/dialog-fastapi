@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from pwdlib import PasswordHash
 from typing import Annotated
 from sqlalchemy.orm import Session
@@ -10,7 +10,6 @@ from sqlalchemy import select
 import jwt
 from app.config import settings
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-
 router = APIRouter(prefix='/api/auth', tags=['auth'])
 password_hash = PasswordHash.recommended()
 DbSession = Annotated[Session, Depends(get_db)]
@@ -20,7 +19,7 @@ JWT_ISSUER = 'dialog-api'
 JWT_AUDIENCE = 'dialog-web'
 
 def create_token(user_id: int):
-    now = datetime.now()
+    now = datetime.now(UTC)
     return jwt.encode({
         'sub': str(user_id),
         'iat': now,
@@ -37,7 +36,8 @@ def read_token(token: str):
             issuer=JWT_ISSUER,
             audience=JWT_AUDIENCE
         )
-    except jwt.PyJWTError:
+    except jwt.PyJWTError as e:
+        print(e)
         return None
     
     user_id = payload.get('sub')
@@ -53,11 +53,11 @@ def set_auth_cookie(response:Response, token: str):
         samesite='lax'
     )
 
-def get_current_user(request:Request, db: DbSession, credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(HTTPBearer)]):
+def get_current_user(request:Request, db: DbSession, credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer)]):
     token = credentials.credentials if credentials else request.cookies.get('dialog_access_token')
     user_id = read_token(token) if token else None
     user = db.get(User, user_id) if user_id else None
-    
+    print(user)
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Требуется вход')
     return user 
@@ -88,7 +88,7 @@ class RegisterRequest(BaseModel):
     
 class AuthResponse(BaseModel):
     access_token: str
-    token_type: str = 'Bearer'
+    token_type: str = 'bearer'
     user: UserResponse
     
 class LoginRequest(BaseModel):
